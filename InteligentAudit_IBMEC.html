@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auditoria Inteligente</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-page:       #F4F4F2;
+    --bg-primary:    #FFFFFF;
+    --bg-secondary:  #F7F7F5;
+    --bg-tertiary:   #EEEDE9;
+    --bg-info:       #E6F1FB;
+    --bg-success:    #EAF3DE;
+    --bg-warning:    #FAEEDA;
+    --bg-danger:     #FCEBEB;
+    --text-primary:  #1A1A18;
+    --text-secondary:#5C5C58;
+    --text-tertiary: #9C9C96;
+    --text-info:     #0C447C;
+    --text-success:  #3B6D11;
+    --text-warning:  #854F0B;
+    --text-danger:   #A32D2D;
+    --border:        rgba(0,0,0,0.10);
+    --border-md:     rgba(0,0,0,0.18);
+    --border-strong: rgba(0,0,0,0.28);
+    --blue-dark:     #042C53;
+    --blue-light:    #B5D4F4;
+    --blue-text:     #E6F1FB;
+    --radius-sm:     6px;
+    --radius-md:     8px;
+    --radius-lg:     12px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-page:       #1A1A18;
+      --bg-primary:    #242422;
+      --bg-secondary:  #2C2C2A;
+      --bg-tertiary:   #343432;
+      --bg-info:       #0C2B44;
+      --bg-success:    #172B0A;
+      --bg-warning:    #2C1A05;
+      --bg-danger:     #2C0F0F;
+      --text-primary:  #F0F0EC;
+      --text-secondary:#AEADA8;
+      --text-tertiary: #6E6E6A;
+      --text-info:     #85B7EB;
+      --text-success:  #97C459;
+      --text-warning:  #EF9F27;
+      --text-danger:   #F09595;
+      --border:        rgba(255,255,255,0.08);
+      --border-md:     rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.22);
+    }
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page-header {
+    width: 100%;
+    max-width: 980px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 1.5rem;
+  }
+  .page-logo {
+    width: 42px; height: 42px;
+    background: var(--blue-dark);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .page-logo i { color: var(--blue-light); font-size: 20px; }
+  .page-title { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+  .page-sub { font-size: 13px; color: var(--text-tertiary); margin-top: 2px; }
+  .ia-pill {
+    margin-left: auto;
+    font-size: 11px; font-weight: 500;
+    padding: 4px 12px; border-radius: 99px;
+    background: var(--bg-info); color: var(--text-info);
+    border: 0.5px solid var(--border);
+  }
+
+  .card {
+    width: 100%; max-width: 980px;
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .tab {
+    padding: 11px 20px;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none; border-bottom: 2px solid transparent;
+    background: none;
+    display: flex; align-items: center; gap: 6px;
+    transition: all .12s;
+  }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active { color: var(--blue-dark); border-bottom-color: var(--blue-dark); }
+  .tab i { font-size: 15px; }
+  .tab-badge {
+    font-size: 10px; padding: 1px 7px;
+    border-radius: 99px;
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .tab.active .tab-badge { background: var(--blue-dark); color: var(--blue-text); border-color: var(--blue-dark); }
+
+  .view { display: none; }
+  .view.active { display: flex; }
+
+  /* ── ANALYSIS VIEW ── */
+  .analysis-view { flex-direction: row; min-height: 580px; }
+  .left-col {
+    width: 42%; border-right: 0.5px solid var(--border);
+    padding: 1.25rem; display: flex; flex-direction: column; gap: 16px;
+  }
+  .right-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .section-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text-tertiary); margin-bottom: 7px;
+  }
+
+  .dropzone {
+    border: 1px dashed var(--border-md);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem; text-align: center;
+    cursor: pointer; background: var(--bg-secondary);
+    position: relative; transition: background .12s;
+  }
+  .dropzone:hover { background: var(--bg-tertiary); }
+  .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .dropzone i { font-size: 24px; color: var(--text-tertiary); display: block; margin-bottom: 6px; }
+  .dropzone .dt { font-size: 13px; color: var(--text-secondary); }
+  .dropzone .dh { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+
+  .file-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .file-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px;
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md); font-size: 12px;
+  }
+  .file-item i { color: var(--text-info); font-size: 15px; flex-shrink: 0; }
+  .file-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+  .file-size { font-size: 10px; color: var(--text-tertiary); flex-shrink: 0; }
+  .file-rm { background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 14px; display: flex; padding: 2px; }
+  .file-rm:hover { color: var(--text-danger); }
+
+  .scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .scope-btn {
+    padding: 8px 9px; font-size: 12px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer; text-align: left;
+    display: flex; align-items: center; gap: 6px;
+    transition: all .1s;
+  }
+  .scope-btn:hover { color: var(--text-primary); border-color: var(--border-md); }
+  .scope-btn.active { background: var(--bg-info); color: var(--text-info); border-color: #85B7EB; }
+  .scope-btn i { font-size: 14px; flex-shrink: 0; }
+
+  textarea {
+    width: 100%; min-height: 80px; resize: vertical;
+    font-size: 13px; padding: 9px 11px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-md);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: var(--font); line-height: 1.6;
+    transition: border .12s, background .12s;
+  }
+  textarea::placeholder { color: var(--text-tertiary); }
+  textarea:focus { outline: none; border-color: var(--border-strong); background: var(--bg-primary); }
+
+  .run-btn {
+    width: 100%; padding: 11px;
+    background: var(--blue-dark); color: var(--blue-text);
+    border: none; border-radius: var(--radius-md);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 8px;
+    transition: opacity .15s; margin-top: auto;
+  }
+  .run-btn:hover { opacity: .88; }
+  .run-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .run-btn i { font-size: 17px; }
+
+  .out-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 15px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg-secondary); flex-shrink: 0;
+  }
+  .out-header i { font-size: 15px; color: var(--text-secondary); }
+  .out-htitle { font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 1; }
+  .sdot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
+  .sdot.ok { background: #1D9E75; }
+  .sdot.loading { background: #BA7517; animation: blink 1s infinite; }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @keyframes spin  { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+
+  .out-body {
+    flex: 1; padding: 1.1rem 1.25rem;
+    font-size: 13px; line-height: 1.75;
+    color: var(--text-secondary);
+    overflow-y: auto; max-height: 330px; min-height: 200px;
+  }
+  .out-body.filled { color: var(--text-primary); }
+  .placeholder {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 180px; gap: 8px; color: var(--text-tertiary);
+  }
+  .placeholder i { font-size: 30px; }
+  .placeholder span { font-size: 12px; }
+
+  .out-actions {
+    display: flex; gap: 6px;
+    padding: 9px 15px;
+    border-top: 0.5px solid var(--border); flex-shrink: 0;
+  }
+  .act-btn {
+    flex: 1; padding: 7px; font-size: 12px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 5px; transition: all .1s;
+  }
+  .act-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .act-btn i { font-size: 14px; }
+
+  /* files panel */
+  .files-panel { background: var(--bg-secondary); border-top: 0.5px solid var(--border); flex-shrink: 0; }
+  .files-panel-hd {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 15px; border-bottom: 0.5px solid var(--border);
+  }
+  .files-panel-hd i { font-size: 15px; color: var(--text-secondary); }
+  .files-panel-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 1; }
+  .files-count {
+    font-size: 10px; padding: 2px 8px;
+    border-radius: 99px; background: var(--bg-primary);
+    border: 0.5px solid var(--border); color: var(--text-secondary);
+  }
+  .gen-list { padding: 10px 15px; display: flex; flex-direction: column; gap: 6px; min-height: 86px; }
+  .gen-empty { display: flex; align-items: center; justify-content: center; min-height: 66px; gap: 6px; color: var(--text-tertiary); font-size: 12px; }
+  .gen-empty i { font-size: 18px; }
+  .gen-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px;
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .gen-icon { width: 32px; height: 32px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .gen-icon.csv  { background: var(--bg-success); }
+  .gen-icon.csv  i { color: var(--text-success); font-size: 16px; }
+  .gen-icon.txt  { background: var(--bg-info); }
+  .gen-icon.txt  i { color: var(--text-info); font-size: 16px; }
+  .gen-icon.log  { background: var(--bg-warning); }
+  .gen-icon.log  i { color: var(--text-warning); font-size: 16px; }
+  .gen-meta { flex: 1; min-width: 0; }
+  .gen-name { font-size: 12px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gen-desc { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  .dl-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 11px; font-size: 11px; font-weight: 500;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; flex-shrink: 0; transition: all .12s;
+  }
+  .dl-btn:hover { background: var(--blue-dark); color: var(--blue-text); border-color: var(--blue-dark); }
+  .dl-btn i { font-size: 14px; }
+
+  /* result formatting */
+  .rsec { margin-bottom: 12px; }
+  .rsec h4 { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); margin-bottom: 5px; }
+  .rsec p, .rsec li { font-size: 13px; line-height: 1.75; color: var(--text-primary); }
+  .rsec ul { padding-left: 16px; }
+  .rsec li { margin-bottom: 3px; }
+  .divhr { height: 0.5px; background: var(--border); margin: 10px 0; }
+  .risk-a { display: inline-flex; align-items: center; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; background: var(--bg-danger); color: var(--text-danger); }
+  .risk-m { display: inline-flex; align-items: center; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; background: var(--bg-warning); color: var(--text-warning); }
+  .risk-b { display: inline-flex; align-items: center; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; background: var(--bg-success); color: var(--text-success); }
+  .err-msg { color: var(--text-danger); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+
+  /* ── LOGS VIEW ── */
+  .logs-view { flex-direction: column; min-height: 580px; }
+  .log-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 16px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg-secondary);
+    flex-wrap: wrap;
+  }
+  .log-toolbar input {
+    flex: 1; min-width: 160px; font-size: 12px;
+    padding: 6px 10px; border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-md);
+    background: var(--bg-primary); color: var(--text-primary);
+    font-family: var(--font);
+  }
+  .log-toolbar input::placeholder { color: var(--text-tertiary); }
+  .log-toolbar input:focus { outline: none; border-color: var(--border-strong); }
+  .log-sel {
+    font-size: 12px; padding: 6px 9px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-md);
+    background: var(--bg-primary); color: var(--text-primary);
+    cursor: pointer;
+  }
+  .log-exp-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px; font-size: 12px; font-weight: 500;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; white-space: nowrap; transition: all .12s;
+  }
+  .log-exp-btn:hover { background: var(--blue-dark); color: var(--blue-text); border-color: var(--blue-dark); }
+  .log-exp-btn i { font-size: 14px; }
+  .log-clr-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px; font-size: 12px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: transparent; color: var(--text-tertiary);
+    cursor: pointer; white-space: nowrap; transition: all .12s;
+  }
+  .log-clr-btn:hover { color: var(--text-danger); border-color: var(--text-danger); }
+  .log-clr-btn i { font-size: 14px; }
+
+  .log-stats {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .stat-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 99px;
+    border: 0.5px solid var(--border);
+    background: var(--bg-primary);
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .stat-chip i { font-size: 13px; }
+  .stat-chip strong { color: var(--text-primary); font-weight: 600; }
+
+  .log-list { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 7px; }
+  .log-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 10px; color: var(--text-tertiary); padding: 4rem 0; }
+  .log-empty i { font-size: 36px; }
+  .log-empty span { font-size: 13px; }
+
+  .log-entry { border: 0.5px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-primary); overflow: hidden; }
+  .log-entry-head {
+    display: flex; align-items: center; gap: 9px;
+    padding: 10px 14px; cursor: pointer; user-select: none;
+    transition: background .1s;
+  }
+  .log-entry-head:hover { background: var(--bg-secondary); }
+  .log-num { font-size: 11px; font-weight: 600; color: var(--text-tertiary); flex-shrink: 0; min-width: 24px; }
+  .log-scope-tag { font-size: 11px; padding: 2px 9px; border-radius: 99px; font-weight: 500; flex-shrink: 0; }
+  .sc-completa     { background: var(--bg-info);    color: var(--text-info); }
+  .sc-inconsistencias { background: var(--bg-warning); color: var(--text-warning); }
+  .sc-risco        { background: var(--bg-danger);  color: var(--text-danger); }
+  .sc-conformidade { background: var(--bg-success);  color: var(--text-success); }
+  .sc-financeiro   { background: #EEEDFE; color: #3C3489; }
+  .sc-personalizada{ background: var(--bg-tertiary); color: var(--text-secondary); }
+  .log-file { flex: 1; font-size: 12px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-risk-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; flex-shrink: 0; }
+  .log-ts { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; white-space: nowrap; }
+  .log-chev { font-size: 13px; color: var(--text-tertiary); flex-shrink: 0; transition: transform .15s; }
+  .log-chev.open { transform: rotate(180deg); }
+
+  .log-body { padding: 12px 14px; border-top: 0.5px solid var(--border); display: none; background: var(--bg-secondary); }
+  .log-body.open { display: block; }
+  .log-field { margin-bottom: 10px; }
+  .log-field-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); margin-bottom: 4px; }
+  .log-field-val { font-size: 12px; color: var(--text-primary); line-height: 1.65; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }
+  .log-acts { display: flex; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); }
+  .log-act {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 11px; font-size: 11px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; transition: all .1s;
+  }
+  .log-act:hover { background: var(--bg-primary); color: var(--text-primary); }
+  .log-act i { font-size: 13px; }
+
+  @media (max-width: 680px) {
+    body { padding: 1rem .5rem 3rem; }
+    .analysis-view { flex-direction: column; }
+    .left-col { width: 100%; border-right: none; border-bottom: 0.5px solid var(--border); }
+    .log-toolbar { gap: 6px; }
+    .log-toolbar input { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="page-logo"><i class="ti ti-shield-check"></i></div>
+  <div>
+    <div class="page-title">Auditoria Inteligente</div>
+    <div class="page-sub">Análise automatizada de documentos financeiros e administrativos</div>
+  </div>
+  <span class="ia-pill">IA ativa</span>
+</header>
+
+<div class="card">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('analysis')" id="tab-analysis">
+      <i class="ti ti-file-analytics"></i>Análise
+    </button>
+    <button class="tab" onclick="switchTab('logs')" id="tab-logs">
+      <i class="ti ti-terminal-2"></i>Logs de análises
+      <span class="tab-badge" id="logsBadge">0</span>
+    </button>
+  </div>
+
+  <!-- ANALYSIS VIEW -->
+  <div class="view analysis-view active" id="view-analysis">
+    <div class="left-col">
+      <div>
+        <div class="section-label">1 — Documento</div>
+        <div class="dropzone" id="dropZone">
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.pdf,.csv,.docx,.txt" multiple />
+          <i class="ti ti-cloud-upload"></i>
+          <div class="dt">Arraste arquivos ou clique para selecionar</div>
+          <div class="dh">XLSX · PDF · CSV · DOCX · TXT</div>
+        </div>
+        <div class="file-list" id="fileList"></div>
+      </div>
+
+      <div>
+        <div class="section-label">2 — Escopo da análise</div>
+        <div class="scope-grid" id="scopeGrid">
+          <button class="scope-btn active" data-scope="completa"><i class="ti ti-list-check"></i>Análise completa</button>
+          <button class="scope-btn" data-scope="inconsistencias"><i class="ti ti-alert-triangle"></i>Inconsistências</button>
+          <button class="scope-btn" data-scope="risco"><i class="ti ti-shield-exclamation"></i>Risco operacional</button>
+          <button class="scope-btn" data-scope="conformidade"><i class="ti ti-certificate"></i>Conformidade</button>
+          <button class="scope-btn" data-scope="financeiro"><i class="ti ti-chart-bar"></i>Dados financeiros</button>
+          <button class="scope-btn" data-scope="personalizada"><i class="ti ti-pencil"></i>Personalizada</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">3 — Instrução do auditor</div>
+        <textarea id="auditInstruction" placeholder="Descreva o foco da análise. Ex: Verifique se as despesas de viagem possuem aprovação e centros de custo corretos..."></textarea>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runAnalysis()">
+        <i class="ti ti-brain"></i>Executar análise
+      </button>
+    </div>
+
+    <div class="right-col">
+      <div style="flex:1;display:flex;flex-direction:column;border-bottom:0.5px solid var(--border)">
+        <div class="out-header">
+          <i class="ti ti-file-analytics"></i>
+          <span class="out-htitle">Resultado da análise</span>
+          <div class="sdot" id="sdot"></div>
+        </div>
+        <div class="out-body" id="outputBody">
+          <div class="placeholder">
+            <i class="ti ti-file-search"></i>
+            <span>Nenhuma análise executada ainda</span>
+          </div>
+        </div>
+        <div class="out-actions" id="outActions" style="display:none">
+          <button class="act-btn" onclick="copyResult()"><i class="ti ti-copy"></i>Copiar resultado</button>
+          <button class="act-btn" onclick="newAnalysis()"><i class="ti ti-refresh"></i>Nova análise</button>
+        </div>
+      </div>
+
+      <div class="files-panel">
+        <div class="files-panel-hd">
+          <i class="ti ti-folder-open"></i>
+          <span class="files-panel-title">Arquivos gerados</span>
+          <span class="files-count" id="fcnt">0 arquivos</span>
+        </div>
+        <div class="gen-list" id="genList">
+          <div class="gen-empty"><i class="ti ti-file-off"></i><span>Nenhum arquivo gerado ainda</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGS VIEW -->
+  <div class="view logs-view" id="view-logs">
+    <div class="log-toolbar">
+      <input type="text" id="logSearch" placeholder="Buscar por arquivo, escopo, instrução ou conteúdo..." oninput="renderLogs()" />
+      <select class="log-sel" id="logFilter" onchange="renderLogs()">
+        <option value="">Todos os escopos</option>
+        <option value="completa">Análise completa</option>
+        <option value="inconsistencias">Inconsistências</option>
+        <option value="risco">Risco operacional</option>
+        <option value="conformidade">Conformidade</option>
+        <option value="financeiro">Dados financeiros</option>
+        <option value="personalizada">Personalizada</option>
+      </select>
+      <select class="log-sel" id="riskFilter" onchange="renderLogs()">
+        <option value="">Todos os riscos</option>
+        <option value="alto">Alto</option>
+        <option value="medio">Médio</option>
+        <option value="baixo">Baixo</option>
+      </select>
+      <button class="log-exp-btn" onclick="exportLogs('json')"><i class="ti ti-download"></i>Exportar JSON</button>
+      <button class="log-exp-btn" onclick="exportLogs('csv')"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
+      <button class="log-clr-btn" onclick="clearLogs()"><i class="ti ti-trash"></i>Limpar logs</button>
+    </div>
+    <div class="log-stats">
+      <div class="stat-chip"><i class="ti ti-database"></i><strong id="statTotal">0</strong>&nbsp;análises registradas</div>
+      <div class="stat-chip"><i class="ti ti-alert-circle" style="color:var(--text-danger)"></i><strong id="statAlto">0</strong>&nbsp;risco alto</div>
+      <div class="stat-chip"><i class="ti ti-alert-triangle" style="color:var(--text-warning)"></i><strong id="statMedio">0</strong>&nbsp;risco médio</div>
+      <div class="stat-chip"><i class="ti ti-check" style="color:var(--text-success)"></i><strong id="statBaixo">0</strong>&nbsp;risco baixo</div>
+    </div>
+    <div class="log-list" id="logList">
+      <div class="log-empty"><i class="ti ti-terminal-2"></i><span>Nenhum log registrado ainda</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let selectedScope = 'completa';
+let uploadedFiles = [];
+let lastResult = '';
+let generatedFiles = [];
+let analysisLogs = [];
+let logIdCounter = 0;
+
+const scopeLabels = {
+  completa:       'análise completa: inconsistências, riscos, conformidade, dados financeiros e pontos de atenção',
+  inconsistencias:'identificação de inconsistências e divergências nos dados',
+  risco:          'avaliação de risco operacional e pontos críticos',
+  conformidade:   'verificação de conformidade e não conformidades',
+  financeiro:     'extração e análise de informações financeiras relevantes',
+  personalizada:  'análise conforme instrução específica do auditor'
+};
+const scopeNames = {
+  completa:'Análise completa', inconsistencias:'Inconsistências',
+  risco:'Risco operacional',   conformidade:'Conformidade',
+  financeiro:'Dados financeiros', personalizada:'Personalizada'
+};
+
+// ── TABS ──
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('view-'+t).classList.add('active');
+  if (t === 'logs') renderLogs();
+}
+
+// ── SCOPE ──
+document.querySelectorAll('.scope-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedScope = btn.dataset.scope;
+    if (selectedScope === 'personalizada') document.getElementById('auditInstruction').focus();
+  });
+});
+
+// ── FILE UPLOAD ──
+document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--border-strong)'; });
+dz.addEventListener('dragleave', () => { dz.style.borderColor = ''; });
+dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor = ''; handleFiles(e.dataTransfer.files); });
+
+function handleFiles(files) {
+  Array.from(files).forEach(f => { if (!uploadedFiles.find(x => x.name === f.name)) uploadedFiles.push(f); });
+  renderFileList();
+}
+function renderFileList() {
+  document.getElementById('fileList').innerHTML = uploadedFiles.map((f,i) => `
+    <div class="file-item">
+      <i class="ti ti-${gfIcon(f.name)}"></i>
+      <span class="file-name">${f.name}</span>
+      <span class="file-size">${fmtSz(f.size)}</span>
+      <button class="file-rm" onclick="removeFile(${i})" aria-label="Remover"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+function gfIcon(n) { return n.endsWith('.pdf') ? 'file-type-pdf' : n.match(/\.(xlsx|xls|csv)$/) ? 'file-spreadsheet' : 'file-text'; }
+function fmtSz(b) { return b < 1024 ? b+' B' : b < 1048576 ? Math.round(b/1024)+' KB' : (b/1048576).toFixed(1)+' MB'; }
+function removeFile(i) { uploadedFiles.splice(i,1); renderFileList(); }
+
+async function fileToBase64(f) {
+  return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(f); });
+}
+async function fileToText(f) {
+  return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsText(f); });
+}
+
+// ── ANALYSIS ──
+function detectRisk(text) {
+  const t = text.toLowerCase();
+  if (t.match(/classifica[cç][aã]o[^:]*:\s*alto/) || t.includes(': alto')) return 'alto';
+  if (t.match(/classifica[cç][aã]o[^:]*:\s*m[eé]dio/) || t.includes(': médio') || t.includes(': medio')) return 'medio';
+  if (t.match(/classifica[cç][aã]o[^:]*:\s*baixo/) || t.includes(': baixo')) return 'baixo';
+  return 'indefinido';
+}
+
+async function runAnalysis() {
+  const instruction = document.getElementById('auditInstruction').value.trim();
+  const btn    = document.getElementById('runBtn');
+  const dot    = document.getElementById('sdot');
+  const body   = document.getElementById('outputBody');
+  const acts   = document.getElementById('outActions');
+  const t0     = Date.now();
+
+  if (uploadedFiles.length === 0 && !instruction) {
+    body.innerHTML = '<div class="err-msg"><i class="ti ti-alert-circle"></i>Faça upload de um arquivo ou descreva o que analisar.</div>';
+    body.classList.remove('filled');
+    return;
+  }
+
+  btn.disabled = true;
+  dot.className = 'sdot loading';
+  acts.style.display = 'none';
+  body.classList.remove('filled');
+  body.innerHTML = '<div class="placeholder"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i><span>Analisando documento…</span></div>';
+
+  try {
+    const customInstr = instruction || 'Realize uma análise de auditoria interna completa e estruturada.';
+    let contentBlocks = [];
+    let fileNames = [];
+
+    for (const file of uploadedFiles) {
+      fileNames.push(file.name);
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        const b64 = await fileToBase64(file);
+        contentBlocks.push({ type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } });
+      } else if (!file.name.match(/\.(xlsx|xls)$/)) {
+        try { const txt = await fileToText(file); contentBlocks.push({ type:'text', text:`Arquivo: ${file.name}\n${txt.slice(0,8000)}` }); } catch(e) {}
+      }
+    }
+
+    const prompt = `Você é um agente de suporte à auditoria interna. Analise o documento com foco em: ${scopeLabels[selectedScope]}.
+
+Instrução do auditor: ${customInstr}
+${fileNames.length > 0 ? `\nArquivos analisados: ${fileNames.join(', ')}` : '\nNenhum arquivo enviado — analise com base na instrução.'}
+
+Responda de forma estruturada com exatamente estas seções:
+
+**1. TIPO DO DOCUMENTO**
+**2. OBJETIVO DO DOCUMENTO**
+**3. PRINCIPAIS INFORMAÇÕES IDENTIFICADAS**
+**4. POSSÍVEIS INCONSISTÊNCIAS**
+**5. PONTOS DE ATENÇÃO PARA AUDITORIA**
+**6. CLASSIFICAÇÃO PRELIMINAR DE RISCO** (Baixo / Médio / Alto — com justificativa)
+**7. RESUMO EXECUTIVO**
+
+Seja objetivo, rastreável e evite conclusões sem evidências. A decisão final pertence ao auditor humano.`;
+
+    const msgs = [{ role:'user', content: contentBlocks.length > 0 ? [...contentBlocks, { type:'text', text:prompt }] : prompt }];
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:msgs })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const text = data.content.map(c => c.text || '').join('');
+    lastResult  = text;
+    const duration = ((Date.now()-t0)/1000).toFixed(1);
+    const tokens   = Math.round(text.split(/\s+/).length * 1.4);
+    const risk     = detectRisk(text);
+    const now      = new Date();
+    const dateRaw  = now.toISOString().slice(0,10);
+    const timestamp = now.toLocaleString('pt-BR');
+
+    logIdCounter++;
+    analysisLogs.unshift({ id:logIdCounter, scope:selectedScope, files:fileNames.join(', '), instruction, result:text, risk, duration, tokens, timestamp, dateRaw });
+    document.getElementById('logsBadge').textContent = analysisLogs.length;
+    updateLogStats();
+
+    body.innerHTML = formatResult(text);
+    body.classList.add('filled');
+    dot.className = 'sdot ok';
+    acts.style.display = 'flex';
+
+    const csvContent = generateChecklistCSV();
+    addGenFile(`checklist_auditoria_${dateRaw}.csv`, 'csv', 'Checklist de verificação', csvContent, 'text/csv;charset=utf-8;');
+    const txtContent = `RELATÓRIO DE AUDITORIA INTERNA\nGerado em: ${timestamp}\nEscopo: ${scopeLabels[selectedScope]}\n\n${'='.repeat(60)}\n\n${text}`;
+    addGenFile(`relatorio_auditoria_${dateRaw}.txt`, 'txt', 'Relatório completo', txtContent, 'text/plain;charset=utf-8;');
+
+  } catch(err) {
+    body.innerHTML = `<div class="err-msg"><i class="ti ti-alert-circle"></i>Erro: ${err.message}</div>`;
+    dot.className = 'sdot';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function formatResult(text) {
+  let html = text
+    .replace(/\*\*(\d+\.\s[^*\n]+)\*\*/g, '<h4>$1</h4>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/:\s*Alto\b/gi, ': <span class="risk-a">Alto</span>')
+    .replace(/:\s*M[eé]dio\b/gi, ': <span class="risk-m">Médio</span>')
+    .replace(/:\s*Baixo\b/gi, ': <span class="risk-b">Baixo</span>');
+  const parts = html.split('<h4>');
+  if (parts.length <= 1) return `<div class="rsec"><p>${html.replace(/\n/g,'<br>')}</p></div>`;
+  return parts.map((s,i) => {
+    if (i === 0) return s ? `<div class="rsec"><p>${s.replace(/\n/g,'<br>')}</p></div>` : '';
+    const [title,...rest] = s.split('</h4>');
+    const content = rest.join('</h4>').trim();
+    const lines = content.split('\n').filter(l => l.trim());
+    const hasBullets = lines.some(l => l.trim().startsWith('-') || l.trim().startsWith('•'));
+    const inner = hasBullets
+      ? '<ul>'+lines.filter(l=>l.trim()).map(l=>`<li>${l.replace(/^[-•]\s*/,'')}</li>`).join('')+'</ul>'
+      : `<p>${content.replace(/\n/g,'<br>')}</p>`;
+    return `<div class="rsec"><h4>${title}</h4>${inner}</div><div class="divhr"></div>`;
+  }).join('');
+}
+
+function copyResult() { navigator.clipboard.writeText(lastResult).catch(()=>{}); }
+function newAnalysis() {
+  uploadedFiles = []; renderFileList();
+  document.getElementById('auditInstruction').value = '';
+  document.getElementById('outputBody').innerHTML = '<div class="placeholder"><i class="ti ti-file-search"></i><span>Nenhuma análise executada ainda</span></div>';
+  document.getElementById('outputBody').classList.remove('filled');
+  document.getElementById('sdot').className = 'sdot';
+  document.getElementById('outActions').style.display = 'none';
+  lastResult = '';
+}
+
+// ── GENERATED FILES ──
+function addGenFile(name, type, desc, content, mime) {
+  const blob = new Blob([content], { type:mime });
+  const url  = URL.createObjectURL(blob);
+  generatedFiles.unshift({ name, type, desc, url, ts: new Date() });
+  renderGenList();
+}
+function renderGenList() {
+  const cnt = document.getElementById('fcnt');
+  cnt.textContent = generatedFiles.length + (generatedFiles.length === 1 ? ' arquivo' : ' arquivos');
+  const list = document.getElementById('genList');
+  if (generatedFiles.length === 0) {
+    list.innerHTML = '<div class="gen-empty"><i class="ti ti-file-off"></i><span>Nenhum arquivo gerado ainda</span></div>';
+    return;
+  }
+  list.innerHTML = generatedFiles.map((f,i) => `
+    <div class="gen-item">
+      <div class="gen-icon ${f.type}">
+        <i class="ti ti-${f.type==='csv'?'file-spreadsheet':f.type==='log'?'terminal-2':'file-text'}"></i>
+      </div>
+      <div class="gen-meta">
+        <div class="gen-name">${f.name}</div>
+        <div class="gen-desc">${f.desc} · ${f.ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <button class="dl-btn" onclick="downloadFile(${i})"><i class="ti ti-download"></i>Baixar</button>
+    </div>`).join('');
+}
+function downloadFile(i) {
+  const f = generatedFiles[i];
+  const a = document.createElement('a'); a.href = f.url; a.download = f.name; a.click();
+}
+
+function generateChecklistCSV() {
+  const ts = new Date().toLocaleDateString('pt-BR');
+  return [
+    ['"CHECKLIST DE AUDITORIA INTERNA"','','','',''],
+    [`"Gerado em: ${ts}"`, '','','',''],
+    ['','','','',''],
+    ['"Nº"','"Item de Verificação"','"Área"','"Status"','"Observações"'],
+    ['"1"','"Verificar se todos os lançamentos possuem documentação de suporte"','"Despesas"','"Pendente"','""'],
+    ['"2"','"Confirmar aprovações nos limites de alçada estabelecidos"','"Governança"','"Pendente"','""'],
+    ['"3"','"Validar centros de custo atribuídos em cada lançamento"','"Contabilidade"','"Pendente"','""'],
+    ['"4"','"Checar datas de competência versus data de pagamento"','"Financeiro"','"Pendente"','""'],
+    ['"5"','"Identificar lançamentos sem número de fornecedor/CNPJ"','"Compras"','"Pendente"','""'],
+    ['"6"','"Verificar duplicidade de pagamentos no período"','"Contas a Pagar"','"Pendente"','""'],
+    ['"7"','"Confirmar se valores acima do limite passaram por dupla aprovação"','"Governança"','"Pendente"','""'],
+    ['"8"','"Verificar classificação contábil das despesas recorrentes"','"Contabilidade"','"Pendente"','""'],
+    ['"9"','"Analisar variação de despesas vs. orçamento aprovado"','"Financeiro"','"Pendente"','""'],
+    ['"10"','"Validar natureza das despesas para conformidade fiscal"','"Fiscal"','"Pendente"','""'],
+    ['"11"','"Checar integridade dos saldos totais por categoria"','"Financeiro"','"Pendente"','""'],
+    ['"12"','"Verificar ausência de campos obrigatórios nos registros"','"Dados"','"Pendente"','""'],
+    ['"13"','"Confirmar se fornecedores estão cadastrados e aprovados"','"Compras"','"Pendente"','""'],
+    ['"14"','"Revisar despesas fora do período de competência declarado"','"Contabilidade"','"Pendente"','""'],
+    ['"15"','"Verificar segregação de funções nos processos de aprovação"','"Governança"','"Pendente"','""'],
+  ].map(r => r.join(',')).join('\n');
+}
+
+// ── LOGS ──
+function updateLogStats() {
+  document.getElementById('statTotal').textContent = analysisLogs.length;
+  document.getElementById('statAlto').textContent  = analysisLogs.filter(l=>l.risk==='alto').length;
+  document.getElementById('statMedio').textContent = analysisLogs.filter(l=>l.risk==='medio').length;
+  document.getElementById('statBaixo').textContent = analysisLogs.filter(l=>l.risk==='baixo').length;
+}
+
+function renderLogs() {
+  const search  = document.getElementById('logSearch').value.toLowerCase();
+  const scopeF  = document.getElementById('logFilter').value;
+  const riskF   = document.getElementById('riskFilter').value;
+  const list    = document.getElementById('logList');
+  updateLogStats();
+
+  const filtered = analysisLogs.filter(l => {
+    const ms = !search || [l.files, l.scope, l.instruction||'', l.result||''].join(' ').toLowerCase().includes(search);
+    return (!scopeF || l.scope===scopeF) && (!riskF || l.risk===riskF) && ms;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="log-empty"><i class="ti ti-terminal-2"></i><span>${analysisLogs.length===0?'Nenhum log registrado ainda':'Nenhum resultado para os filtros selecionados'}</span></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(l => {
+    const rCls   = l.risk==='alto'?'risk-a':l.risk==='medio'?'risk-m':l.risk==='baixo'?'risk-b':'';
+    const rLabel = l.risk==='alto'?'Alto':l.risk==='medio'?'Médio':l.risk==='baixo'?'Baixo':'—';
+    return `
+    <div class="log-entry" id="le-${l.id}">
+      <div class="log-entry-head" onclick="toggleLog(${l.id})">
+        <span class="log-num">#${String(l.id).padStart(2,'0')}</span>
+        <span class="log-scope-tag sc-${l.scope}">${scopeNames[l.scope]||l.scope}</span>
+        <span class="log-file">${l.files||'Sem arquivo'}</span>
+        <span class="log-risk-badge ${rCls}">${rLabel}</span>
+        <span class="log-ts">${l.timestamp}</span>
+        <i class="ti ti-chevron-down log-chev" id="chev-${l.id}"></i>
+      </div>
+      <div class="log-body" id="lb-${l.id}">
+        <div class="log-field"><div class="log-field-lbl">Arquivos analisados</div><div class="log-field-val">${l.files||'Nenhum'}</div></div>
+        <div class="log-field"><div class="log-field-lbl">Instrução do auditor</div><div class="log-field-val">${l.instruction||'(não especificada)'}</div></div>
+        <div class="log-field"><div class="log-field-lbl">Resultado da análise</div><div class="log-field-val">${l.result||''}</div></div>
+        <div class="log-field"><div class="log-field-lbl">Duração · Tokens estimados</div><div class="log-field-val">${l.duration}s · ~${l.tokens} tokens</div></div>
+        <div class="log-acts">
+          <button class="log-act" onclick="exportSingleLog(${l.id})"><i class="ti ti-download"></i>Exportar este log</button>
+          <button class="log-act" onclick="copyLogResult(${l.id})"><i class="ti ti-copy"></i>Copiar resultado</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleLog(id) {
+  document.getElementById('lb-'+id).classList.toggle('open');
+  document.getElementById('chev-'+id).classList.toggle('open');
+}
+function copyLogResult(id) {
+  const l = analysisLogs.find(x=>x.id===id);
+  if (l) navigator.clipboard.writeText(l.result).catch(()=>{});
+}
+function exportSingleLog(id) {
+  const l = analysisLogs.find(x=>x.id===id);
+  if (!l) return;
+  const txt = `LOG DE ANÁLISE #${String(l.id).padStart(2,'0')}\n${'='.repeat(50)}\nData/Hora: ${l.timestamp}\nEscopo: ${scopeNames[l.scope]}\nRisco: ${l.risk}\nArquivos: ${l.files||'nenhum'}\nInstrução: ${l.instruction||'não especificada'}\nDuração: ${l.duration}s · ~${l.tokens} tokens\n\nRESULTADO:\n${l.result}`;
+  dlBlob(txt, `log_auditoria_${String(l.id).padStart(2,'0')}_${l.dateRaw}.txt`, 'text/plain');
+}
+function exportLogs(fmt) {
+  if (analysisLogs.length === 0) return;
+  const ts = new Date().toISOString().slice(0,10);
+  if (fmt === 'json') {
+    dlBlob(JSON.stringify(analysisLogs, null, 2), `logs_auditoria_${ts}.json`, 'application/json');
+  } else {
+    const header = ['"ID"','"Data/Hora"','"Escopo"','"Risco"','"Arquivos"','"Instrução"','"Duração (s)"','"Tokens"','"Resultado"'].join(',');
+    const rows   = analysisLogs.map(l => [
+      `"${l.id}"`, `"${l.timestamp}"`, `"${scopeNames[l.scope]}"`, `"${l.risk}"`,
+      `"${(l.files||'').replace(/"/g,'""')}"`, `"${(l.instruction||'').replace(/"/g,'""')}"`,
+      `"${l.duration}"`, `"${l.tokens}"`, `"${(l.result||'').replace(/"/g,'""').replace(/\n/g,' ')}"`
+    ].join(','));
+    const csv = [header,...rows].join('\n');
+    dlBlob(csv, `logs_auditoria_${ts}.csv`, 'text/csv;charset=utf-8;');
+    addGenFile(`logs_auditoria_${ts}.csv`, 'log', `${analysisLogs.length} análises exportadas`, csv, 'text/csv;charset=utf-8;');
+  }
+}
+function clearLogs() {
+  if (!analysisLogs.length || !confirm('Limpar todos os logs desta sessão?')) return;
+  analysisLogs = []; logIdCounter = 0;
+  document.getElementById('logsBadge').textContent = '0';
+  updateLogStats(); renderLogs();
+}
+function dlBlob(content, name, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download = name; a.click();
+}
+
+// init
+renderGenList();
+renderLogs();
+</script>
+</body>
+</html>
